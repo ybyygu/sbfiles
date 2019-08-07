@@ -10,7 +10,7 @@ use quicli::prelude::*;
 // cli
 
 // [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*cli][cli:1]]
-/// Copy/paste files through scrollbuffer with base64 MIME encoding.
+/// Copy/paste files through scrollback buffer with base64 MIME encoding.
 #[derive(Debug, StructOpt)]
 struct Cli {
     /// Encode `files` as plain text and print it to stdout.

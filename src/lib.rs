@@ -1,42 +1,64 @@
 // imports
 
 // [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*imports][imports:1]]
-use std::ffi::OsString;
-use std::path::{Path, PathBuf};
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 use quicli::prelude::*;
 
 type Result<T> = ::std::result::Result<T, Error>;
-
-use duct::cmd;
 // imports:1 ends here
 
-// encode
+// rust
 
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*encode][encode:1]]
+// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*rust][rust:1]]
 /// Add files into zip archive and encode binary data as base64 stream.
 pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
-    assert!(!files.is_empty(), "empty list of files!");
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
 
-    // tar --create --gzip --verbose --file -
-    let mut args: Vec<PathBuf> = vec!["--create", "--gzip", "--verbose", "--file", "-"]
-        .into_iter()
-        .map(|s| s.into())
-        .collect();
+    // create tar.gz stream
+    let buf: Vec<u8> = vec![];
+    let enc = GzEncoder::new(buf, Compression::default());
+    let mut tar = tar::Builder::new(enc);
 
-    // add files to tar ball.
-    for p in files {
-        args.push(p.as_ref().into());
+    // add files into tar ball (tar.gz)
+    for f in files {
+        let p = f.as_ref();
+
+        // the path in the archive is required to be relative.
+        let name = if p.is_absolute() {
+            p.strip_prefix("/")?
+        } else {
+            p
+        };
+
+        // add local files or files in directory recursively.
+        if p.is_file() {
+            let mut f = File::open(p)?;
+            info!("archive file: {}", name.display());
+
+            tar.append_file(name, &mut f)?;
+        } else if p.is_dir() {
+            tar.append_dir_all(name, p)?;
+        } else {
+            bail!("file does not exists: {:?}", p);
+        }
     }
-    let x = cmd("tar", &args).pipe(cmd!("base64")).read()?;
 
-    Ok(x)
+    // encode with base64 to plain text stream
+    let data = tar.into_inner()?.finish()?;
+
+    let b64 = base64::encode(&data);
+
+    Ok(b64)
 }
-// encode:1 ends here
+// rust:1 ends here
 
-// decode
+// rust
 
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*decode][decode:1]]
+// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*rust][rust:1]]
 /// Decode base64 encoded zip archive stream and extract all files inside.
 ///
 /// # Parameters
@@ -44,34 +66,51 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
 /// * data: base64 encoded zip archive
 ///
 pub fn decode(txt: Option<&str>) -> Result<()> {
-    // base64 -d | tar --extract --verbose --gzip --file -
-    let d = if let Some(txt) = txt {
-        cmd!("base64", "--decode").input(txt)
+    decode_files_to(txt, ".")
+}
+
+/// Decode base64 encoded zip archive stream and extract all files inside.
+///
+/// # Parameters
+///
+/// * data: base64 encoded zip archive
+///
+pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()> {
+    use flate2::read::GzDecoder;
+    use tar::Archive;
+
+    // 1. decode base64 text into tar.gz stream
+
+    // decode `txt` or the text read in from stdin.
+    let tar_gz = if let Some(txt) = txt {
+        base64::decode(txt)?
     } else {
-        cmd!("base64", "--decode")
+        let mut buffer = String::new();
+        let stdin = std::io::stdin();
+        let mut handle = stdin.lock();
+
+        handle.read_to_string(&mut buffer)?;
+        base64::decode(&buffer.trim_end()).with_context(|_| format!("base64 decoding failed."))?
     };
-    let x = d
-        .pipe(cmd!(
-            "tar",
-            "--extract",
-            "--verbose",
-            "--gzip",
-            "--file",
-            "-"
-        ))
-        .read();
-    dbg!(x);
+
+    let tar = GzDecoder::new(tar_gz.as_slice());
+    let mut archive = Archive::new(tar);
+    archive.unpack(path.as_ref())?;
 
     Ok(())
 }
-// decode:1 ends here
+// rust:1 ends here
 
 // test
 
 // [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*test][test:1]]
 #[test]
 fn test_tar() -> Result<()> {
-    let files = vec!["/tmp/login.log", "/home/ybyygu/gss.svg"];
+    use std::ffi::OsString;
+    use std::io::Write;
+
+    let files = vec!["Cargo.lock", "foobar.d"];
+    let files: Vec<OsString> = files.iter().map(|n| n.into()).collect();
 
     // Create a directory inside of `std::env::temp_dir()`
     let dir = tempfile::tempdir()?;
@@ -79,11 +118,19 @@ fn test_tar() -> Result<()> {
     {
         let _ = std::env::set_current_dir(&dir)?;
 
-        let s = encode(&files)?;
-        let _ = decode(Some(&s))?;
+        // create source files
+        for f in files.iter() {
+            let mut fp = File::create(&f)?;
+            fp.write_all(b"test")?;
+        }
 
-        let x = cmd!("fd").read()?;
-        dbg!(x);
+        let s = encode(&files)?;
+        let _ = decode_files_to(Some(&s), "x")?;
+
+        for entry in std::fs::read_dir("x")? {
+            let fname = entry?.file_name();
+            assert!(files.contains(&fname));
+        }
     }
 
     Ok(())

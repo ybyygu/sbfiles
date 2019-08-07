@@ -3,7 +3,7 @@
 # [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*cargo][cargo:1]]
 [package]
 name = "sbfiles"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
@@ -11,8 +11,11 @@ authors = ["Wenping Guo <ybyygu@gmail.com>"]
 structopt = "0.2"
 quicli = "0.4"
 zip = "0.5"
-duct = "0.12"
+flate2 = "1"
+tar = "0.4"
+base64 = "0.10"
 
 [dev-dependencies]
+duct = "0.12"
 tempfile = "3"
 # cargo:1 ends here
