@@ -10,6 +10,13 @@ use quicli::prelude::*;
 type Result<T> = ::std::result::Result<T, Error>;
 // imports:1 ends here
 
+// base
+
+// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*base][base:1]]
+const MARKER_START: &str = "^^^^^^^^^^-START-OF-STREAM-^^^^^^^^";
+const MARKER_END: &str = "@@@@@@@@@@@@@-END-OF-STREAM-@@@@@@@@@";
+// base:1 ends here
+
 // rust
 
 // [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*rust][rust:1]]
@@ -50,9 +57,13 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     // encode with base64 to plain text stream
     let data = tar.into_inner()?.finish()?;
 
-    let b64 = base64::encode(&data);
+    let data = [
+        MARKER_START.into(),
+        base64::encode(&data),
+        MARKER_END.into(),
+    ];
 
-    Ok(b64)
+    Ok(data.join(""))
 }
 // rust:1 ends here
 
@@ -77,25 +88,38 @@ pub fn decode(txt: Option<&str>) -> Result<()> {
 ///
 pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()> {
     use flate2::read::GzDecoder;
+    use std::io::BufRead;
     use tar::Archive;
 
     // 1. decode base64 text into tar.gz stream
 
     // decode `txt` or the text read in from stdin.
-    let tar_gz = if let Some(txt) = txt {
-        base64::decode(txt)?
+    let txt = if let Some(txt) = txt {
+        txt.to_owned()
     } else {
+        // handle wrapped lines
         let mut buffer = String::new();
-        let stdin = std::io::stdin();
-        let mut handle = stdin.lock();
-
-        handle.read_to_string(&mut buffer)?;
-        base64::decode(&buffer.trim_end()).with_context(|_| format!("base64 decoding failed."))?
+        for line in std::io::stdin().lock().lines() {
+            let line = line?;
+            buffer.push_str(&line);
+        }
+        buffer
     };
 
-    let tar = GzDecoder::new(tar_gz.as_slice());
-    let mut archive = Archive::new(tar);
-    archive.unpack(path.as_ref())?;
+    if let Some(p0) = txt.rfind(MARKER_START) {
+        let p0 = p0 + MARKER_START.len();
+        if let Some(p1) = txt.rfind(MARKER_END) {
+            let b64 = &txt[p0..p1];
+            let tar_gz = base64::decode(b64)?;
+            let tar = GzDecoder::new(tar_gz.as_slice());
+            let mut archive = Archive::new(tar);
+            archive.unpack(path.as_ref())?;
+        } else {
+            error!("Cannot find stream end marker!");
+        }
+    } else {
+        error!("Cannot find stream start marker!");
+    }
 
     Ok(())
 }
@@ -133,6 +157,14 @@ fn test_tar() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+#[test]
+fn test_decode() -> Result<()> {
+    let file = "/tmp/tmux-buffer";
+    let x = read_file(file)?;
+    let _ = decode(Some(&x))?;
     Ok(())
 }
 // test:1 ends here

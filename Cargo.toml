@@ -10,7 +10,6 @@ authors = ["Wenping Guo <ybyygu@gmail.com>"]
 [dependencies]
 structopt = "0.2"
 quicli = "0.4"
-zip = "0.5"
 flate2 = "1"
 tar = "0.4"
 base64 = "0.10"

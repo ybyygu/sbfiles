@@ -32,7 +32,11 @@ enum Task {
 
     /// Decode scrollbuffer stream into files.
     #[structopt(name = "decode", alias = "d")]
-    Decode {},
+    Decode {
+        /// Extract files to `directory`.
+        #[structopt(parse(from_os_str), long = "directory", short = "C")]
+        directory: Option<PathBuf>,
+    },
 }
 
 fn main() -> CliResult {
@@ -44,12 +48,15 @@ fn main() -> CliResult {
             let txt = sbfiles::encode(&files)?;
 
             print!("{}", txt);
-            println!("");
         }
-        Task::Decode {} => {
+        Task::Decode { directory } => {
             println!("Paste encoded files stream here. Press Ctrl-d to execute.");
             let stream = None;
-            let _ = sbfiles::decode(stream)?;
+            if let Some(d) = directory {
+                let _ = sbfiles::decode_files_to(stream, d)?;
+            } else {
+                let _ = sbfiles::decode(stream)?;
+            }
         }
     }
     Ok(())
