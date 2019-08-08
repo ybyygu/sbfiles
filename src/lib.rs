@@ -2,7 +2,6 @@
 
 // [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*imports][imports:1]]
 use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 
 use quicli::prelude::*;
@@ -157,14 +156,6 @@ fn test_tar() -> Result<()> {
         }
     }
 
-    Ok(())
-}
-
-#[test]
-fn test_decode() -> Result<()> {
-    let file = "/tmp/tmux-buffer";
-    let x = read_file(file)?;
-    let _ = decode(Some(&x))?;
     Ok(())
 }
 // test:1 ends here
