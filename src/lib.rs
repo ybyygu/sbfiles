@@ -1,24 +1,16 @@
-// imports
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*imports][imports:1]]
+// [[file:../sbfiles.note::*imports][imports:1]]
 use std::fs::File;
 use std::path::Path;
 
-use quicli::prelude::*;
-
-type Result<T> = ::std::result::Result<T, Error>;
+use gut::prelude::*;
 // imports:1 ends here
 
-// base
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*base][base:1]]
+// [[file:../sbfiles.note::*base][base:1]]
 const MARKER_START: &str = "^^^^^^^^^^-START-OF-STREAM-^^^^^^^^";
 const MARKER_END: &str = "@@@@@@@@@@@@@-END-OF-STREAM-@@@@@@@@@";
 // base:1 ends here
 
-// rust
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*rust][rust:1]]
+// [[file:../sbfiles.note::*rust][rust:1]]
 /// Add files into zip archive and encode binary data as base64 stream.
 pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     use flate2::write::GzEncoder;
@@ -66,9 +58,7 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
 }
 // rust:1 ends here
 
-// rust
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*rust][rust:1]]
+// [[file:../sbfiles.note::*rust][rust:1]]
 /// Decode base64 encoded zip archive stream and extract all files inside.
 ///
 /// # Parameters
@@ -124,9 +114,7 @@ pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()>
 }
 // rust:1 ends here
 
-// test
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*test][test:1]]
+// [[file:../sbfiles.note::*test][test:1]]
 #[test]
 fn test_tar() -> Result<()> {
     use std::ffi::OsString;

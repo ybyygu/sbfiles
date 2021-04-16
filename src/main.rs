@@ -1,15 +1,11 @@
-// imports
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*imports][imports:1]]
+// [[file:../sbfiles.note::*imports][imports:1]]
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use quicli::prelude::*;
+use gut::prelude::*;
 // imports:1 ends here
 
-// cli
-
-// [[file:~/Workspace/Programming/cmdline-tools/sbfiles/sbfiles.note::*cli][cli:1]]
+// [[file:../sbfiles.note::*cli][cli:1]]
 /// Copy/paste files through scrollback buffer with base64 MIME encoding.
 #[derive(Debug, StructOpt)]
 struct Cli {
@@ -18,7 +14,7 @@ struct Cli {
     task: Task,
 
     #[structopt(flatten)]
-    verbosity: Verbosity,
+    verbosity: gut::cli::Verbosity,
 }
 
 #[derive(StructOpt, Debug)]
@@ -28,6 +24,10 @@ enum Task {
     Encode {
         #[structopt(parse(from_os_str), required = true)]
         files: Vec<PathBuf>,
+        
+        /// Write to clipboard using OSC 52 escape sequence
+        #[structopt(long = "clip", short)]
+        clipboard: bool,
     },
 
     /// Decode scrollbuffer stream into files.
@@ -39,15 +39,27 @@ enum Task {
     },
 }
 
-fn main() -> CliResult {
+// Use OSC 52 escape sequence to set clipboard through stdout
+fn copy_to_clipboard(txt: &str) -> Result<()> {
+    println!("Wring to clipboard using OSC 52 escape sequence.");
+
+    println!("\x1B]52;c;{}\x07", base64::encode(txt));
+    Ok(())
+}
+
+fn main() -> gut::cli::CliResult {
     let args = Cli::from_args();
-    args.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
+    args.verbosity.setup_logger();
 
     match args.task {
-        Task::Encode { files } => {
+        Task::Encode { files, clipboard } => {
             let txt = sbfiles::encode(&files)?;
 
-            print!("{}", txt);
+            if clipboard {
+                copy_to_clipboard(&txt)?;
+            } else {
+                print!("{}", &txt);
+            }
         }
         Task::Decode { directory } => {
             println!("Paste encoded files stream here. Press Ctrl-d to execute.");
