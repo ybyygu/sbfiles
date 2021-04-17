@@ -21,13 +21,19 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     let enc = GzEncoder::new(buf, Compression::default());
     let mut tar = tar::Builder::new(enc);
 
+    // for calculating relative path
+    let pwd = std::env::current_dir()?;
     // add files into tar ball (tar.gz)
     for f in files {
         let p = f.as_ref();
 
         // the path in the archive is required to be relative.
         let name = if p.is_absolute() {
-            p.strip_prefix("/")?
+            if p.starts_with(&pwd) {
+                p.strip_prefix(&pwd)?
+            } else {
+                p.strip_prefix("/")?
+            }
         } else {
             p
         };
@@ -94,6 +100,9 @@ pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()>
         }
         buffer
     };
+
+    // remove new line separator
+    let txt: String = txt.lines().filter(|&x| x == "\n").collect();
 
     if let Some(p0) = txt.rfind(MARKER_START) {
         let p0 = p0 + MARKER_START.len();
