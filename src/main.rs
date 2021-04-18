@@ -50,23 +50,6 @@ fn copy_to_clipboard(txt: &str) -> Result<()> {
     Ok(())
 }
 
-// wrap the long string into multiple lines.
-//
-// 76 is the default value in the standard program 'base64'
-//
-// another way is to use email.base64MIME.encode
-fn wrap_long_line(txt: &str) -> String {
-    let n = 76;
-    let mut lines = String::new();
-
-    let m = (txt.len() as f64 / n as f64) as usize;
-    for i in 0..m {
-        writeln!(&mut lines, "{}", &txt[i * n..(i + 1) * n]);
-    }
-    writeln!(&mut lines, "{}", &txt[m * n..]);
-    lines
-}
-
 fn main() -> gut::cli::CliResult {
     let args = Cli::from_args();
     args.verbosity.setup_logger();
@@ -74,7 +57,6 @@ fn main() -> gut::cli::CliResult {
     match args.task {
         Task::Encode { files, clipboard } => {
             let txt = sbfiles::encode(&files)?;
-            let txt = wrap_long_line(&txt);
             if clipboard {
                 copy_to_clipboard(&txt)?;
             } else {

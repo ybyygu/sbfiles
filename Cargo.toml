@@ -1,4 +1,4 @@
-# [[file:sbfiles.note::*cargo][cargo:1]]
+# [[file:sbfiles.note::ad76bf47][ad76bf47]]
 [package]
 name = "sbfiles"
 version = "0.0.4"
@@ -11,14 +11,16 @@ gut = {version="0.1.3", package="gchemol-gut"}
 flate2 = "1"
 tar = "0.4"
 base64 = "0.13"
-pathdiff = "0.2"       
+pathdiff = "0.2"
 
 [dev-dependencies]
 duct = "0.13"
 tempfile = "3"
 
+[workspace]
+
 # [dependencies.copypasta-ext]
 # version = "0.3"
 # default-features = false
 # features = ["osc52"]
-# cargo:1 ends here
+# ad76bf47 ends here

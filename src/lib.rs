@@ -10,6 +10,52 @@ const MARKER_START: &str = "^^^^^^^^^^-START-OF-STREAM-^^^^^^^^";
 const MARKER_END: &str = "@@@@@@@@@@@@@-END-OF-STREAM-@@@@@@@@@";
 // base:1 ends here
 
+// [[file:../sbfiles.note::*core][core:1]]
+/// encode binary data as text
+fn base64_encode(data: &[u8]) -> String {
+    let b64 = base64::encode(data);
+
+    let mut encoded: String = MARKER_START.into();
+    // encoded.push_str(&b64);
+    encoded.push_str(&wrap_long_line(&b64));
+    encoded.push_str(MARKER_END);
+    encoded
+}
+
+/// Found encoded data block with predefined markers
+fn base64_decode(txt: &str) -> Result<Vec<u8>> {
+    if let Some(p0) = txt.rfind(MARKER_START) {
+        let p0 = p0 + MARKER_START.len();
+        if let Some(p1) = txt.rfind(MARKER_END) {
+            // remove new line separator
+            let b64: String = txt[p0..p1].lines().collect();
+            Ok(base64::decode(&b64)?)
+        } else {
+            bail!("Cannot find stream end marker!");
+        }
+    } else {
+        bail!("Cannot find stream start marker!");
+    }
+}
+
+// wrap the long string into multiple lines.
+//
+// 76 is the default value in the standard program 'base64'
+//
+// another way is to use email.base64MIME.encode
+fn wrap_long_line(txt: &str) -> String {
+    let n = 76;
+    let mut lines = String::new();
+
+    let m = (txt.len() as f64 / n as f64) as usize;
+    for i in 0..m {
+        writeln!(&mut lines, "{}", &txt[i * n..(i + 1) * n]);
+    }
+    writeln!(&mut lines, "{}", &txt[m * n..]);
+    lines
+}
+// core:1 ends here
+
 // [[file:../sbfiles.note::*rust][rust:1]]
 /// Add files into zip archive and encode binary data as base64 stream.
 pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
@@ -54,13 +100,7 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     // encode with base64 to plain text stream
     let data = tar.into_inner()?.finish()?;
 
-    let data = [
-        MARKER_START.into(),
-        base64::encode(&data),
-        MARKER_END.into(),
-    ];
-
-    Ok(data.join(""))
+    Ok(base64_encode(&data))
 }
 // rust:1 ends here
 
@@ -86,8 +126,6 @@ pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()>
     use std::io::BufRead;
     use tar::Archive;
 
-    // 1. decode base64 text into tar.gz stream
-
     // decode `txt` or the text read in from stdin.
     let txt = if let Some(txt) = txt {
         txt.to_owned()
@@ -101,23 +139,11 @@ pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()>
         buffer
     };
 
-    // remove new line separator
-    let txt: String = txt.lines().filter(|&x| x == "\n").collect();
-
-    if let Some(p0) = txt.rfind(MARKER_START) {
-        let p0 = p0 + MARKER_START.len();
-        if let Some(p1) = txt.rfind(MARKER_END) {
-            let b64 = &txt[p0..p1];
-            let tar_gz = base64::decode(b64)?;
-            let tar = GzDecoder::new(tar_gz.as_slice());
-            let mut archive = Archive::new(tar);
-            archive.unpack(path.as_ref())?;
-        } else {
-            error!("Cannot find stream end marker!");
-        }
-    } else {
-        error!("Cannot find stream start marker!");
-    }
+    // decode base64 text into tar.gz stream
+    let tar_gz = base64_decode(&txt)?;
+    let tar = GzDecoder::new(tar_gz.as_slice());
+    let mut archive = Archive::new(tar);
+    archive.unpack(path.as_ref())?;
 
     Ok(())
 }
