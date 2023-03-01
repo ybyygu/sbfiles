@@ -1,11 +1,11 @@
-// [[file:../sbfiles.note::*imports][imports:1]]
-use std::path::PathBuf;
-use structopt::StructOpt;
-
+// [[file:../sbfiles.note::5bb04e05][5bb04e05]]
+use gut::cli::*;
 use gut::prelude::*;
-// imports:1 ends here
 
-// [[file:../sbfiles.note::*cli][cli:1]]
+use std::path::PathBuf;
+// 5bb04e05 ends here
+
+// [[file:../sbfiles.note::da7a3420][da7a3420]]
 /// Copy/paste files through scrollback buffer with base64 MIME encoding.
 #[derive(Debug, StructOpt)]
 struct Cli {
@@ -22,7 +22,7 @@ enum Task {
     /// Encode `files` as plain text and print it to stdout.
     #[structopt(name = "encode", alias = "e")]
     Encode {
-        #[structopt(parse(from_os_str), required = true)]
+        #[structopt(required = true)]
         files: Vec<PathBuf>,
 
         /// Write to clipboard using OSC 52 escape sequence
@@ -34,7 +34,7 @@ enum Task {
     #[structopt(name = "decode", alias = "d")]
     Decode {
         /// Extract files to `directory`.
-        #[structopt(parse(from_os_str), long = "directory", short = "C")]
+        #[structopt(long = "directory", short = 'C')]
         directory: Option<PathBuf>,
     },
 }
@@ -50,8 +50,8 @@ fn copy_to_clipboard(txt: &str) -> Result<()> {
     Ok(())
 }
 
-fn main() -> gut::cli::CliResult {
-    let args = Cli::from_args();
+fn main() -> Result<()> {
+    let args = Cli::parse();
     args.verbosity.setup_logger();
 
     match args.task {
@@ -75,4 +75,4 @@ fn main() -> gut::cli::CliResult {
     }
     Ok(())
 }
-// cli:1 ends here
+// da7a3420 ends here

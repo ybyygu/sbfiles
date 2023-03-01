@@ -2,12 +2,12 @@
 [package]
 name = "sbfiles"
 version = "0.0.4"
-edition = "2018"
+edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
-structopt = "0.3"
-gut = {version="0.1.3", package="gchemol-gut"}
+clap = { version = "4", features = ["derive", "env"] }
+gut = {version="0.4", package="gchemol-gut"}
 flate2 = "1"
 tar = "0.4"
 base64 = "0.13"
