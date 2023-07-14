@@ -49,60 +49,14 @@ fn wrap_long_line(txt: &str) -> String {
 
     let m = (txt.len() as f64 / n as f64) as usize;
     for i in 0..m {
-        writeln!(&mut lines, "{}", &txt[i * n..(i + 1) * n]);
+        let _ = writeln!(&mut lines, "{}", &txt[i * n..(i + 1) * n]);
     }
-    writeln!(&mut lines, "{}", &txt[m * n..]);
+    let _ = writeln!(&mut lines, "{}", &txt[m * n..]);
     lines
 }
 // 5a0d1628 ends here
 
 // [[file:../sbfiles.note::7b00f9a4][7b00f9a4]]
-/// Add files into zip archive and encode binary data as base64 stream.
-fn encode_bytes<P: AsRef<Path>>(files: &[P]) -> Result<String> {
-    use flate2::write::GzEncoder;
-    use flate2::Compression;
-
-    // create tar.gz stream
-    let buf: Vec<u8> = vec![];
-    let enc = GzEncoder::new(buf, Compression::default());
-    let mut tar = tar::Builder::new(enc);
-
-    // for calculating relative path
-    let pwd = std::env::current_dir()?;
-    // add files into tar ball (tar.gz)
-    for f in files {
-        let p = f.as_ref();
-
-        // the path in the archive is required to be relative.
-        let name = if p.is_absolute() {
-            if p.starts_with(&pwd) {
-                p.strip_prefix(&pwd)?
-            } else {
-                p.strip_prefix("/")?
-            }
-        } else {
-            p
-        };
-
-        // add local files or files in directory recursively.
-        if p.is_file() {
-            let mut f = File::open(p)?;
-            info!("archive file: {}", name.display());
-
-            tar.append_file(name, &mut f)?;
-        } else if p.is_dir() {
-            tar.append_dir_all(name, p)?;
-        } else {
-            bail!("file does not exists: {:?}", p);
-        }
-    }
-
-    // encode with base64 to plain text stream
-    let data = tar.into_inner()?.finish()?;
-
-    Ok(base64_encode(&data))
-}
-
 /// Add files into zip archive and encode binary data as base64 stream.
 fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     use flate2::write::GzEncoder;

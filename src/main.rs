@@ -59,10 +59,8 @@ fn main() -> Result<()> {
     match args.task {
         Task::Encode { mut files, clipboard } => {
             if files.is_empty() {
-                // Get a handle to stdin
                 let stdin = std::io::stdin();
-                // Lock stdin for reading
-                let mut stdin = stdin.lock();
+                let stdin = stdin.lock();
                 for line in stdin.lines() {
                     let line = line?;
                     files.push(PathBuf::from(&line));
