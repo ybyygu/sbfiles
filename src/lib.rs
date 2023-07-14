@@ -58,7 +58,53 @@ fn wrap_long_line(txt: &str) -> String {
 
 // [[file:../sbfiles.note::7b00f9a4][7b00f9a4]]
 /// Add files into zip archive and encode binary data as base64 stream.
-pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
+fn encode_bytes<P: AsRef<Path>>(files: &[P]) -> Result<String> {
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+
+    // create tar.gz stream
+    let buf: Vec<u8> = vec![];
+    let enc = GzEncoder::new(buf, Compression::default());
+    let mut tar = tar::Builder::new(enc);
+
+    // for calculating relative path
+    let pwd = std::env::current_dir()?;
+    // add files into tar ball (tar.gz)
+    for f in files {
+        let p = f.as_ref();
+
+        // the path in the archive is required to be relative.
+        let name = if p.is_absolute() {
+            if p.starts_with(&pwd) {
+                p.strip_prefix(&pwd)?
+            } else {
+                p.strip_prefix("/")?
+            }
+        } else {
+            p
+        };
+
+        // add local files or files in directory recursively.
+        if p.is_file() {
+            let mut f = File::open(p)?;
+            info!("archive file: {}", name.display());
+
+            tar.append_file(name, &mut f)?;
+        } else if p.is_dir() {
+            tar.append_dir_all(name, p)?;
+        } else {
+            bail!("file does not exists: {:?}", p);
+        }
+    }
+
+    // encode with base64 to plain text stream
+    let data = tar.into_inner()?.finish()?;
+
+    Ok(base64_encode(&data))
+}
+
+/// Add files into zip archive and encode binary data as base64 stream.
+fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     use flate2::write::GzEncoder;
     use flate2::Compression;
 
@@ -114,7 +160,7 @@ use tar::Archive;
 ///
 /// * data: base64 encoded zip archive
 ///
-pub fn decode(txt: Option<&str>) -> Result<()> {
+fn decode(txt: Option<&str>) -> Result<()> {
     decode_files_to(txt, ".")
 }
 
@@ -124,7 +170,7 @@ pub fn decode(txt: Option<&str>) -> Result<()> {
 ///
 /// * data: base64 encoded zip archive
 ///
-pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()> {
+fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()> {
     use std::io::BufRead;
 
     // decode `txt` or the text read in from stdin.
@@ -175,8 +221,25 @@ impl Sbfiles {
     }
 
     /// Encode files as compressed tar.gz base64 text
-    pub fn encode(files: &[&Path]) -> Result<String> {
+    pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
         encode(files)
+    }
+
+    /// Decode base64 encoded zip archive stream and extract all files inside.
+    ///
+    /// # Parameters
+    /// * data: base64 encoded zip archive
+    pub fn decode(txt: Option<&str>) -> Result<()> {
+        decode_files_to(txt, ".")
+    }
+
+    /// Decode base64 encoded zip archive stream and extract all files inside.
+    ///
+    /// # Parameters
+    ///
+    /// * data: base64 encoded zip archive
+    pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()> {
+        decode_files_to(txt, path)
     }
 }
 // c8fe874c ends here

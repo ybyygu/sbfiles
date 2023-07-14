@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 // [[file:../sbfiles.note::da7a3420][da7a3420]]
 /// Copy/paste files through scrollback buffer with base64 MIME encoding.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 struct Cli {
     /// Encode `files` as plain text and print it to stdout.
     #[structopt(subcommand)]
@@ -17,12 +17,11 @@ struct Cli {
     verbosity: gut::cli::Verbosity,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 enum Task {
     /// Encode `files` as plain text and print it to stdout.
-    #[structopt(name = "encode", alias = "e")]
+    #[clap(name = "encode", alias = "e")]
     Encode {
-        #[structopt(required = true)]
         files: Vec<PathBuf>,
 
         /// Write to clipboard using OSC 52 escape sequence
@@ -31,7 +30,7 @@ enum Task {
     },
 
     /// Decode scrollbuffer stream into files.
-    #[structopt(name = "decode", alias = "d")]
+    #[clap(name = "decode", alias = "d")]
     Decode {
         /// Extract files to `directory`.
         #[structopt(long = "directory", short = 'C')]
@@ -51,12 +50,25 @@ fn copy_to_clipboard(txt: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    use sbfiles::Sbfiles;
+    use std::io::BufRead;
+
     let args = Cli::parse();
     args.verbosity.setup_logger();
 
     match args.task {
-        Task::Encode { files, clipboard } => {
-            let txt = sbfiles::encode(&files)?;
+        Task::Encode { mut files, clipboard } => {
+            if files.is_empty() {
+                // Get a handle to stdin
+                let stdin = std::io::stdin();
+                // Lock stdin for reading
+                let mut stdin = stdin.lock();
+                for line in stdin.lines() {
+                    let line = line?;
+                    files.push(PathBuf::from(&line));
+                }
+            };
+            let txt = Sbfiles::encode(&files)?;
             if clipboard {
                 copy_to_clipboard(&txt)?;
             } else {
@@ -67,9 +79,9 @@ fn main() -> Result<()> {
             println!("Paste encoded files stream here. Press Ctrl-d to execute.");
             let stream = None;
             if let Some(d) = directory {
-                let _ = sbfiles::decode_files_to(stream, d)?;
+                let _ = Sbfiles::decode_files_to(stream, d)?;
             } else {
-                let _ = sbfiles::decode(stream)?;
+                let _ = Sbfiles::decode(stream)?;
             }
         }
     }
