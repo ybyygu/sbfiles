@@ -16,6 +16,7 @@ fn base64_encode(data: &[u8]) -> String {
     let b64 = base64::encode(data);
 
     let mut encoded: String = MARKER_START.into();
+    // encoded.push_str(&b64);
     encoded.push_str(&wrap_long_line(&b64));
     encoded.push_str(MARKER_END);
     encoded
@@ -103,7 +104,10 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
 }
 // 7b00f9a4 ends here
 
-// [[file:../sbfiles.note::*rust][rust:1]]
+// [[file:../sbfiles.note::802bcea7][802bcea7]]
+use flate2::read::GzDecoder;
+use tar::Archive;
+
 /// Decode base64 encoded zip archive stream and extract all files inside.
 ///
 /// # Parameters
@@ -121,9 +125,7 @@ pub fn decode(txt: Option<&str>) -> Result<()> {
 /// * data: base64 encoded zip archive
 ///
 pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()> {
-    use flate2::read::GzDecoder;
     use std::io::BufRead;
-    use tar::Archive;
 
     // decode `txt` or the text read in from stdin.
     let txt = if let Some(txt) = txt {
@@ -140,13 +142,44 @@ pub fn decode_files_to<P: AsRef<Path>>(txt: Option<&str>, path: P) -> Result<()>
 
     // decode base64 text into tar.gz stream
     let tar_gz = base64_decode(&txt)?;
-    let tar = GzDecoder::new(tar_gz.as_slice());
-    let mut archive = Archive::new(tar);
+    let mut archive = decode_tar_gz(tar_gz.as_slice())?;
     archive.unpack(path.as_ref())?;
 
     Ok(())
 }
-// rust:1 ends here
+
+/// decode tar.gz stream as tar stream
+fn decode_tar_gz(tar_gz: &[u8]) -> Result<Archive<GzDecoder<&[u8]>>> {
+    let tar = GzDecoder::new(tar_gz);
+    Ok(Archive::new(tar))
+}
+// 802bcea7 ends here
+
+// [[file:../sbfiles.note::c8fe874c][c8fe874c]]
+/// Copy/paste files using terminal scrollback buffer
+pub struct Sbfiles {
+    decoded_tar_gz: Vec<u8>,
+}
+
+impl Sbfiles {
+    pub fn new() -> Self {
+        Self {
+            decoded_tar_gz: Vec::new(),
+        }
+    }
+
+    /// Decode base64 text as tar ball stream
+    pub fn decode_as_tar(&mut self, txt: &str) -> Result<Archive<GzDecoder<&[u8]>>> {
+        self.decoded_tar_gz = base64_decode(txt)?;
+        decode_tar_gz(self.decoded_tar_gz.as_slice())
+    }
+
+    /// Encode files as compressed tar.gz base64 text
+    pub fn encode(files: &[&Path]) -> Result<String> {
+        encode(files)
+    }
+}
+// c8fe874c ends here
 
 // [[file:../sbfiles.note::*test][test:1]]
 #[test]
