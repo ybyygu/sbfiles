@@ -10,7 +10,7 @@
 
 1.  直接将本地文件发送到远程主机命令行当前目录下, 或将命令行当前目录下文件直接取回本地. 省去scp和sftp切换目录的麻烦.
 2.  特别是当目标文件所在主机位于重重ssh嵌套(A -> B -> C), 没有办法直接来scp或sftp
-    时, 这个小玩意用起来更方便些.
+    时, 这个小工具用起来更方便些.
 
 
 # 实现原理
@@ -25,36 +25,26 @@
 
 # 使用方法
 
-sbfiles配合tmux使用, 最便利.
 
+## 场景: 将远程主机文件复制到本地
 
-## 将远程主机文件复制到本地
-
-1.  在tmux中ssh到远程主机(可任意嵌套).
+1.  ssh 远程登录某主机(可任意嵌套).
 2.  在远程主机上使用sbfiles编码文件:
     
         sbfiles encode file-or-dir
-3.  在本地某个目录下执行如下命令(outside tmux):
     
-        tmux capture-pane -S - -E - -p|sbfiles decode
-
-
-## 将本地文件复制到远程主机
-
-1.  在本地主机上使用sbfiles编码文件:
+    以上命令将编辑后的文本输出至屏幕, 将相关内容复制后待用.
     
-        sbfiles encode file-or-dir
-2.  复制tmux屏幕内容至buffer
+        fd POSCAR | sbfiles e --clip
     
-        ctrl-b :capture-pane -S -
-3.  在tmux中ssh到远程主机(可任意嵌套).
-4.  在远程主机某个目录下执行如下命令(inside tmux):
+    以上命令将本目录下所有 POSCAR 目录编码为文本, 并将其写入本机的
+    clipboard (需要 [OSC 52](https://jdhao.github.io/2021/01/05/nvim_copy_from_remote_via_osc52/) 支持)
+
+3.  在本地某个目录下执行如下命令:
     
         sbfiles decode
     
-    将tmux之前保存的buffer贴入后, 按ctrl-d确认即可:
-    
-        ctrl-b :paste-buffer
+    以上命令将从 stdin 中读取待解码的文本. 在终端窗口中粘贴文本后, 将当前目录下生成解码后的相关文件.
 
 
 # 其它说明
