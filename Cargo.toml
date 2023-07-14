@@ -1,16 +1,19 @@
 # [[file:sbfiles.note::ad76bf47][ad76bf47]]
 [package]
 name = "sbfiles"
-version = "0.0.4"
+version = "0.1.0"
 edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
+description = "Copy/paste files using terminal scrollback buffer"
+homepage = "https://github.com/ybyygu/sbfiles"
+repository = "https://github.com/ybyygu/sbfiles"
 
 [dependencies]
-clap = { version = "4", features = ["derive", "env"] }
-gut = {version="0.4", package="gchemol-gut"}
+clap = { version = "4.3", features = ["derive", "env"] }
+gut = {version="0.4.4", package="gchemol-gut"}
 flate2 = "1"
 tar = "0.4"
-base64 = "0.13"
+base64 = "0.21"
 pathdiff = "0.2"
 
 [dev-dependencies]

@@ -10,13 +10,12 @@ const MARKER_START: &str = "^^^^^^^^^^-START-OF-STREAM-^^^^^^^^";
 const MARKER_END: &str = "@@@@@@@@@@@@@-END-OF-STREAM-@@@@@@@@@";
 // base:1 ends here
 
-// [[file:../sbfiles.note::*core][core:1]]
+// [[file:../sbfiles.note::5a0d1628][5a0d1628]]
 /// encode binary data as text
 fn base64_encode(data: &[u8]) -> String {
     let b64 = base64::encode(data);
 
     let mut encoded: String = MARKER_START.into();
-    // encoded.push_str(&b64);
     encoded.push_str(&wrap_long_line(&b64));
     encoded.push_str(MARKER_END);
     encoded
@@ -54,9 +53,9 @@ fn wrap_long_line(txt: &str) -> String {
     writeln!(&mut lines, "{}", &txt[m * n..]);
     lines
 }
-// core:1 ends here
+// 5a0d1628 ends here
 
-// [[file:../sbfiles.note::*rust][rust:1]]
+// [[file:../sbfiles.note::7b00f9a4][7b00f9a4]]
 /// Add files into zip archive and encode binary data as base64 stream.
 pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
     use flate2::write::GzEncoder;
@@ -102,7 +101,7 @@ pub fn encode<P: AsRef<Path>>(files: &[P]) -> Result<String> {
 
     Ok(base64_encode(&data))
 }
-// rust:1 ends here
+// 7b00f9a4 ends here
 
 // [[file:../sbfiles.note::*rust][rust:1]]
 /// Decode base64 encoded zip archive stream and extract all files inside.
